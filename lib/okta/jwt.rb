@@ -61,9 +61,9 @@ module Okta
     # extract public key from metadata's jwks_uri using kid
     def get_jwk(header, payload)
       kid = header['kid']
-
+      jwk_cache = Rails.cache.read("jwk_cache_#{kid}")
       # cache hit
-      return JWKS_CACHE[kid] if JWKS_CACHE[kid]
+      return jwk_cache if jwk_cache
   
       # fetch jwk
       logger.info("[Okta::Jwt] Fetching public key: kid => #{kid} ...") if logger
@@ -75,7 +75,7 @@ module Okta
       end
   
       # cache and return the key
-      jwk.tap{JWKS_CACHE[kid] = jwk}
+      jwk.tap{Rails.cache.write("jwk_cache_#{kid}", jwk, expires_in: 30.days)}
     end
   
     # fetch client metadata using cid/aud
